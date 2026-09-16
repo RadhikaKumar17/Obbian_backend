@@ -1,0 +1,40 @@
+{
+  "config": {
+    "city": "New Delhi",
+    "timezone": "Asia/Kolkata",
+    "currency": "INR",
+    "originLat": 28.6328,
+    "originLng": 77.2197,
+    "insuranceFee": 249,
+    "pickupTime": "10:00",
+    "returnTime": "20:00",
+    "timeLabel": "10:00 AM – 8:00 PM",
+    "trackingPollMs": 10000,
+    "defaultRadius": "10",
+    "defaultBudget": "3000",
+    "defaultSort": "recommended",
+    "radiusOptions": [{"value":"10","label":"10 km radius"},{"value":"3","label":"3 km radius"},{"value":"5","label":"5 km radius"}],
+    "budgetOptions": [{"value":"3000","label":"Under ₹3,000/day"},{"value":"2700","label":"Under ₹2,700/day"},{"value":"2500","label":"Under ₹2,500/day"},{"value":"2000","label":"Under ₹2,000/day"}],
+    "sortOptions": [{"value":"recommended","label":"Recommended"},{"value":"price","label":"Price: low to high"},{"value":"rating","label":"Highest rated"}],
+    "paymentMethods": [{"value":"pickup","label":"Pay at pickup"}]
+  },
+  "vehicles": [
+    {"id":"creta","name":"Hyundai Creta","price":2650,"lat":28.6462,"lng":77.2349,"rating":4.7,"available":true,"category":"SUV","transmission":"Automatic","seats":5,"fuel":"Petrol","pickup":"Connaught Place, New Delhi","trips":320},
+    {"id":"seltos","name":"Kia Seltos","price":2850,"lat":28.6041,"lng":77.2316,"rating":4.6,"available":true,"category":"SUV","transmission":"Automatic","seats":5,"fuel":"Petrol","pickup":"Rajiv Chowk, New Delhi","trips":212},
+    {"id":"nexon","name":"Tata Nexon","price":2499,"lat":28.6180,"lng":77.1735,"rating":4.5,"available":true,"category":"SUV","transmission":"Automatic","seats":5,"fuel":"Petrol","pickup":"Karol Bagh, New Delhi","trips":180},
+    {"id":"xuv300","name":"Mahindra XUV300","price":2700,"lat":28.6755,"lng":77.1788,"rating":4.5,"available":false,"category":"SUV","transmission":"Automatic","seats":5,"fuel":"Diesel","pickup":"South Extension, New Delhi","trips":96}
+  ],
+  "bookings": [],
+  "saved": {},
+  "sessions": {},
+  "tickets": [],
+  "tracking": {},
+  "policies": [
+    {"id":"cancellation","title":"Cancellation and refunds","source":"Cancellation Policy v1.4","answer":"Cancellations are free more than 24 hours before pickup. Within 24 hours, a 50% cancellation fee applies. A no-show is non-refundable.","keywords":["cancel","refund","no-show"]},
+    {"id":"deposit","title":"Security deposit timeline","source":"Refund Processing Guide","answer":"The demo security deposit is released after the vehicle inspection. Allow 5–7 business days for it to appear in your original payment account.","keywords":["deposit"]},
+    {"id":"insurance","title":"Insurance and damage","source":"Insurance Coverage Guide","answer":"The ₹249 demo insurance option covers eligible accidental damage, subject to the rental agreement and excess. Personal belongings, negligence and unauthorised drivers are excluded. Contact support to review a specific incident.","keywords":["insurance","damage","cover"]},
+    {"id":"fuel","title":"Fuel and late returns","source":"Fuel & Return Policy","answer":"Return the vehicle with the same fuel level as pickup. If you expect to be late, contact support before your return time to arrange an extension and confirm any additional charge.","keywords":["fuel","late","return","petrol"]},
+    {"id":"payment","title":"Payment failed","source":"Payment Help","answer":"Check your payment details and try again. If your bank shows a debit without a confirmed booking, contact support with the transaction reference before retrying.","keywords":["payment","paid","card"]},
+    {"id":"pickup","title":"Pickup checklist","source":"Pickup Guide","answer":"Bring your valid driving licence and photo ID. Check the vehicle with the pickup team, document any existing damage, and confirm the fuel level before starting your trip.","keywords":["pickup","licence","license","document"]}
+  ]
+}
