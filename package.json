@@ -12,6 +12,7 @@
     "start": "node src/server.js"
   },
   "dependencies": {
+    "mem0ai": "^3.1.8",
     "mongodb": "6.21.0",
     "ws": "^8.21.3"
   }

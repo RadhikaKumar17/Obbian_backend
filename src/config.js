@@ -22,6 +22,7 @@ export const settings = {
   ragApiKey: process.env.RAG_API_KEY || '',
   groqApiKey: process.env.GROQ_API_KEY || '',
   assistantModel: process.env.ASSISTANT_MODEL || 'openai/gpt-oss-120b',
+  mem0ApiKey: process.env.MEM0_API_KEY || '',
 };
 if (!['Lax', 'Strict', 'None'].includes(settings.sameSite)) throw new Error('Invalid COOKIE_SAME_SITE');
 if (settings.sameSite === 'None' && !settings.secureCookie) throw new Error('SameSite=None requires COOKIE_SECURE=true');

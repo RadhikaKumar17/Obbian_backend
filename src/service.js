@@ -1,6 +1,7 @@
 import { randomUUID, randomBytes } from 'node:crypto';
 import { distanceKm, isValidCoordinate } from './geo.js';
 import { askRag } from './rag-client.js';
+import { rememberChat, recallChat } from './memory.js';
 
 const round1 = n => Math.round(n * 10) / 10;
 
@@ -158,26 +159,10 @@ export function createService(store) {
       const v = vehicle(store.read(), id);
       return { id: v.id, name: v.name, category: v.category, transmission: v.transmission, price: v.price, pickup: v.pickup };
     },
-    recordPolicyChat(session, question, answer) {
-      return store.update(db => {
-        db.chatHistory ??= {};
-        db.chatHistory[session] ??= { policy: [], assistant: [] };
-        db.chatHistory[session].policy.push({ question, ...answer, createdAt: new Date().toISOString() });
-        db.chatHistory[session].policy = db.chatHistory[session].policy.slice(-50);
-        return null;
-      });
-    },
-    recordAssistantChat(session, message, reply) {
-      return store.update(db => {
-        db.chatHistory ??= {};
-        db.chatHistory[session] ??= { policy: [], assistant: [] };
-        db.chatHistory[session].assistant.push({ question: message, ...reply, createdAt: new Date().toISOString() });
-        db.chatHistory[session].assistant = db.chatHistory[session].assistant.slice(-50);
-        return null;
-      });
-    },
-    policyChatHistory(session) { return store.read().chatHistory?.[session]?.policy ?? []; },
-    assistantChatHistory(session) { return store.read().chatHistory?.[session]?.assistant ?? []; },
+    recordPolicyChat(session, question, answer) { return rememberChat(session, 'policy', question, answer.answer, answer); },
+    recordAssistantChat(session, message, reply) { return rememberChat(session, 'assistant', message, reply.answer, reply); },
+    policyChatHistory(session) { return recallChat(session, 'policy'); },
+    assistantChatHistory(session) { return recallChat(session, 'assistant'); },
     updateVehicle(id, input) {
       return store.update(db => {
         const v = vehicle(db, id);
