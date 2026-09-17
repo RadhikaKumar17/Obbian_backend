@@ -47,7 +47,7 @@ function resolveOrigin(db, params = {}) {
   return { lat: db.config.originLat, lng: db.config.originLng };
 }
 function withDistance(vehicles, origin) {
-  return vehicles.map(v => ({ ...v, distance: round1(distanceKm(origin.lat, origin.lng, v.lat, v.lng)) }));
+  return vehicles.map(v => ({ ...v, distance: round1(distanceKm(origin.lat, origin.lng, v.lat, v.lng)), distanceMeters: distanceKm(origin.lat, origin.lng, v.lat, v.lng) * 1000 }));
 }
 export function createService(store) {
   return {
@@ -78,7 +78,7 @@ export function createService(store) {
       if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(radius) || radius <= 0) fail(400, 'Budget and radius must be positive numbers.');
       if (!db.config.sortOptions.some(option => option.value === sort)) fail(400, 'Invalid sort order.');
       const origin = resolveOrigin(db, params);
-      const results = withDistance(db.vehicles, origin).filter(v => available(db, v.id, date) && v.price <= budget && v.distance <= radius)
+      const results = withDistance(db.vehicles, origin).filter(v => available(db, v.id, date) && v.price <= budget && v.distanceMeters <= radius * 1000 && (!params.category || v.category.toLowerCase() === String(params.category).toLowerCase()) && (!params.transmission || v.transmission.toLowerCase() === String(params.transmission).toLowerCase()))
         .sort((a, b) => sort === 'price' ? a.price - b.price : sort === 'rating' ? b.rating - a.rating : a.distance - b.distance || b.rating - a.rating);
       return { results, recommendedId: results[0]?.id ?? null, count: results.length, origin };
     },

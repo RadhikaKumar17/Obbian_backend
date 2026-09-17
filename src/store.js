@@ -19,7 +19,7 @@ export async function createStore(mongoUri, seedFile = new URL('../data/seed.jso
   let state = (await collection.findOne({ _id: DOC_ID }))?.data;
   if (!state) {
     state = JSON.parse(await readFile(seedFile, 'utf8'));
-    await collection.updateOne({ _id: DOC_ID }, { $set: { data: state } }, { upsert: true });
+    await collection.updateOne({ _id: DOC_ID }, { $setOnInsert: { data: state } }, { upsert: true });
   }
   if (!Array.isArray(state.vehicles) || !Array.isArray(state.bookings) || !Array.isArray(state.policies) || !state.config || !state.sessions) {
     throw new Error('Invalid database. Refusing to overwrite existing data.');
@@ -30,11 +30,22 @@ export async function createStore(mongoUri, seedFile = new URL('../data/seed.jso
     read() { return structuredClone(state); },
     update(change) {
       const operation = queue.then(async () => {
-        const draft = structuredClone(state);
-        const result = await change(draft);
-        await collection.updateOne({ _id: DOC_ID }, { $set: { data: draft } });
-        state = draft;
-        return structuredClone(result);
+        // Compare-and-swap makes booking checks safe across multiple server processes.
+        for (let attempt = 0; attempt < 20; attempt++) {
+          const latest = await collection.findOne({ _id: DOC_ID });
+          if (!latest) throw new Error('Database state is missing.');
+          const draft = structuredClone(latest.data);
+          const result = await change(draft);
+          const written = await collection.updateOne(
+            { _id: DOC_ID, revision: latest.revision ?? null },
+            { $set: { data: draft }, $inc: { revision: 1 } },
+          );
+          if (written.matchedCount === 1) {
+            state = draft;
+            return structuredClone(result);
+          }
+        }
+        throw new Error('Database is busy. Please retry.');
       });
       queue = operation.catch(() => {});
       return operation;
