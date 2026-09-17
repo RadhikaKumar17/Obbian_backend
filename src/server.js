@@ -1,3 +1,4 @@
+import { createDemoAuth } from './demo-auth.js';
 import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
 import { settings } from './config.js';
@@ -10,6 +11,7 @@ const MAX_BODY_BYTES = 1_000_000;
 
 const store = await createStore(settings.mongoUri);
 const service = createService(store);
+const auth = createDemoAuth(store);
 
 const text = value => ({ __raw: value });
 
@@ -86,6 +88,9 @@ function broadcastTracking(bookingId, payload) {
 const simulator = createTrackingSimulator(store, service, broadcastTracking);
 
 const routes = [
+  route('GET', '/api/auth/me', async () => null),
+  route('POST', '/api/auth/login', async () => null),
+  route('POST', '/api/auth/logout', async () => null),
   route('GET', '/api/health', async () => ({ ok: true })),
   route('GET', '/api/config', async () => service.config()),
   route('GET', '/api/vehicles', async ctx => service.catalog(ctx.query.get('date'), originParams(ctx.query))),
@@ -135,20 +140,37 @@ const server = createServer(async (req, res) => {
   }
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
+    if (origin && !settings.origins.includes(origin)) throw new ApiError(403, 'Origin is not allowed.');
     const match = matchRoute(req.method, url.pathname);
     if (!match) throw new ApiError(404, 'Not found.');
     if (match.admin) {
       const auth = req.headers.authorization || '';
       if (!settings.adminToken || auth !== `Bearer ${settings.adminToken}`) throw new ApiError(401, 'Admin authorization required.');
     }
-    let session = null;
-    if (!match.admin) {
-      const cookies = parseCookies(req.headers.cookie);
-      const { token, created } = await service.session(cookies[SESSION_COOKIE]);
-      session = token;
-      if (created) res.setHeader('Set-Cookie', sessionCookie(token));
-    }
+    res.setHeader('Cache-Control', 'no-store');
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies[SESSION_COOKIE];
     const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
+    if (url.pathname.startsWith('/api/auth/')) {
+      if (req.method === 'GET' && url.pathname === '/api/auth/me') return send(res, 200, { user: await auth.current(token) });
+      if (req.method === 'POST' && url.pathname === '/api/auth/login') {
+        const result = await auth.login(body, token);
+        res.setHeader('Set-Cookie', sessionCookie(result.token));
+        return send(res, 200, { user: result.user });
+      }
+      if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
+        await auth.logout(token);
+        for (const ws of wss.clients) if (ws.sessionToken === token) ws.close(1000, 'Logged out');
+        res.setHeader('Set-Cookie', sessionCookie('').replace(/Max-Age=\d+/, 'Max-Age=0'));
+        return send(res, 200, { user: null });
+      }
+    }
+    let session = null;
+    if (!match.admin && url.pathname !== '/api/health') {
+      const user = await auth.current(token);
+      if (!user) throw new ApiError(401, 'Please log in to continue.');
+      session = user.id;
+    }
     const result = await match.handler({ req, params: match.params, query: url.searchParams, body, session });
     send(res, match.status, result);
   } catch (error) {
@@ -167,9 +189,9 @@ server.on('upgrade', async (req, socket, head) => {
     const origin = req.headers.origin;
     if (url.pathname !== '/ws/tracking' || (origin && !settings.origins.includes(origin))) { socket.destroy(); return; }
     const cookies = parseCookies(req.headers.cookie);
-    const { token, created } = await service.session(cookies[SESSION_COOKIE]);
-    if (created) req.__setCookie = sessionCookie(token);
-    wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req, token));
+    const user = await auth.current(cookies[SESSION_COOKIE]);
+    if (!user) { socket.destroy(); return; }
+    wss.handleUpgrade(req, socket, head, ws => { ws.sessionToken = cookies[SESSION_COOKIE]; wss.emit('connection', ws, req, user.id); });
   } catch {
     socket.destroy();
   }
@@ -182,6 +204,7 @@ wss.on('connection', (ws, req, session) => {
     try { message = JSON.parse(raw.toString()); } catch { return; }
     if (message.type !== 'subscribe' || typeof message.bookingId !== 'string') return;
     try {
+      if (!await auth.current(ws.sessionToken)) { ws.close(1008, 'Please log in'); return; }
       const initial = await trackingWithLiveUpdates(session, message.bookingId, simulator);
       if (subscribedId) subscribers.get(subscribedId)?.delete(ws);
       subscribedId = message.bookingId;

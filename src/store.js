@@ -28,6 +28,12 @@ export async function createStore(mongoUri, seedFile = new URL('../data/seed.jso
   let queue = Promise.resolve();
   return {
     read() { return structuredClone(state); },
+    async readFresh() {
+      const latest = await collection.findOne({ _id: DOC_ID });
+      if (!latest) throw new Error('Database state is missing.');
+      state = latest.data;
+      return structuredClone(state);
+    },
     update(change) {
       const operation = queue.then(async () => {
         // Compare-and-swap makes booking checks safe across multiple server processes.
