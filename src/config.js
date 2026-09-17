@@ -20,6 +20,8 @@ export const settings = {
   sameSite: process.env.COOKIE_SAME_SITE || 'Lax',
   ragServiceUrl: process.env.RAG_SERVICE_URL || '',
   ragApiKey: process.env.RAG_API_KEY || '',
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  assistantModel: process.env.ASSISTANT_MODEL || 'openai/gpt-oss-120b',
 };
 if (!['Lax', 'Strict', 'None'].includes(settings.sameSite)) throw new Error('Invalid COOKIE_SAME_SITE');
 if (settings.sameSite === 'None' && !settings.secureCookie) throw new Error('SameSite=None requires COOKIE_SECURE=true');

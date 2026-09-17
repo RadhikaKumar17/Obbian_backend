@@ -5,6 +5,7 @@ import { settings } from './config.js';
 import { createStore } from './store.js';
 import { createService, ApiError } from './service.js';
 import { createTrackingSimulator } from './tracking-simulator.js';
+import { runAssistant } from './assistant.js';
 
 const SESSION_COOKIE = 'obbian_session';
 const MAX_BODY_BYTES = 1_000_000;
@@ -104,7 +105,20 @@ const routes = [
   route('GET', '/api/bookings/:id/receipt', async ctx => text(service.receipt(ctx.session, ctx.params.id))),
   route('GET', '/api/bookings/:id/tracking', async ctx => trackingWithLiveUpdates(ctx.session, ctx.params.id, simulator)),
   route('GET', '/api/policies', async () => service.policies()),
-  route('POST', '/api/policies/ask', async ctx => service.askPolicy(ctx.body.question)),
+  route('POST', '/api/policies/ask', async ctx => {
+    const answer = await service.askPolicy(ctx.body.question);
+    await service.recordPolicyChat(ctx.session, ctx.body.question, answer);
+    return answer;
+  }),
+  route('GET', '/api/chats/policy', async ctx => service.policyChatHistory(ctx.session)),
+  route('POST', '/api/assistant', async ctx => {
+    const reply = await runAssistant({
+      session: ctx.session, message: ctx.body.message, history: ctx.body.history, context: ctx.body.context || {}, service,
+    });
+    await service.recordAssistantChat(ctx.session, ctx.body.message, reply);
+    return reply;
+  }),
+  route('GET', '/api/chats/assistant', async ctx => service.assistantChatHistory(ctx.session)),
   route('POST', '/api/support/tickets', async ctx => service.createTicket(ctx.session, ctx.body), { status: 201 }),
   route('GET', '/api/support/tickets', async ctx => service.tickets(ctx.session)),
   route('PATCH', '/api/admin/vehicles/:id', async ctx => service.updateVehicle(ctx.params.id, ctx.body), { admin: true }),

@@ -151,6 +151,33 @@ export function createService(store) {
       const q = text(question, 'Question', 1, 2000);
       return askRag(q);
     },
+    vehicleCatalog() {
+      return store.read().vehicles.map(({ id, name, category, transmission, price }) => ({ id, name, category, transmission, price }));
+    },
+    vehicleInfo(id) {
+      const v = vehicle(store.read(), id);
+      return { id: v.id, name: v.name, category: v.category, transmission: v.transmission, price: v.price, pickup: v.pickup };
+    },
+    recordPolicyChat(session, question, answer) {
+      return store.update(db => {
+        db.chatHistory ??= {};
+        db.chatHistory[session] ??= { policy: [], assistant: [] };
+        db.chatHistory[session].policy.push({ question, ...answer, createdAt: new Date().toISOString() });
+        db.chatHistory[session].policy = db.chatHistory[session].policy.slice(-50);
+        return null;
+      });
+    },
+    recordAssistantChat(session, message, reply) {
+      return store.update(db => {
+        db.chatHistory ??= {};
+        db.chatHistory[session] ??= { policy: [], assistant: [] };
+        db.chatHistory[session].assistant.push({ question: message, ...reply, createdAt: new Date().toISOString() });
+        db.chatHistory[session].assistant = db.chatHistory[session].assistant.slice(-50);
+        return null;
+      });
+    },
+    policyChatHistory(session) { return store.read().chatHistory?.[session]?.policy ?? []; },
+    assistantChatHistory(session) { return store.read().chatHistory?.[session]?.assistant ?? []; },
     updateVehicle(id, input) {
       return store.update(db => {
         const v = vehicle(db, id);
