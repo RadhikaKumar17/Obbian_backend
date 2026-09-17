@@ -1,5 +1,6 @@
 import { randomUUID, randomBytes } from 'node:crypto';
 import { distanceKm, isValidCoordinate } from './geo.js';
+import { askRag } from './rag-client.js';
 
 const round1 = n => Math.round(n * 10) / 10;
 
@@ -146,11 +147,9 @@ export function createService(store) {
     },
     tickets(session) { return store.read().tickets.filter(t => t.ownerId === session).map(({ ownerId, ...ticket }) => ticket); },
     policies() { return store.read().policies.map(({ keywords, ...policy }) => policy); },
-    answerPolicy(question) {
-      const q = text(question, 'Question', 1, 500).toLowerCase();
-      const { policies } = store.read();
-      const match = q.includes('deposit') ? policies.find(p => p.id === 'deposit') : policies.find(p => p.keywords.some(keyword => q.includes(keyword)));
-      return match ? { id: match.id, title: match.title, source: match.source, answer: match.answer } : null;
+    askPolicy(question) {
+      const q = text(question, 'Question', 1, 2000);
+      return askRag(q);
     },
     updateVehicle(id, input) {
       return store.update(db => {

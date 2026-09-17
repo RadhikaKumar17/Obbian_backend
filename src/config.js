@@ -18,6 +18,8 @@ export const settings = {
   adminToken: process.env.ADMIN_TOKEN || '',
   secureCookie: process.env.COOKIE_SECURE === 'true',
   sameSite: process.env.COOKIE_SAME_SITE || 'Lax',
+  ragServiceUrl: process.env.RAG_SERVICE_URL || '',
+  ragApiKey: process.env.RAG_API_KEY || '',
 };
 if (!['Lax', 'Strict', 'None'].includes(settings.sameSite)) throw new Error('Invalid COOKIE_SAME_SITE');
 if (settings.sameSite === 'None' && !settings.secureCookie) throw new Error('SameSite=None requires COOKIE_SECURE=true');
